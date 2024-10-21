@@ -1,0 +1,11 @@
+__pycache__/
+.DS_store
+fake_data/
+pickplace_dataset/
+*.pth
+*.npz
+z.*
+rec/
+imagenposes/
+datasets/
+logs/
