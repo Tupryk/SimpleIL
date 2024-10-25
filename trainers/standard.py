@@ -16,6 +16,7 @@ def train(model: nn.Module,
     
     optimizer = optim.AdamW(model.parameters(), lr=lr)
     model.to(device)
+    model.log_model()
     train_losses = []
     val_losses = []
     loss_fn = nn.MSELoss()
@@ -57,13 +58,14 @@ def train(model: nn.Module,
             for X, y in val_loader:
                 X, y = X.to(device), y.to(device)
                 out = model(X)
-                val_loss += loss_fn(out, y).item()
+                loss = loss_fn(out, y)
+                val_loss += loss.item()
 
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
 
         # Print losses for this epoch
-        print(f"Epoch {epoch + 1},\t Train Loss: {np.mean(train_losses):.6f},\t Val Loss: {val_loss:.6f}")
+        print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
         train_losses = []
 
         if (epoch+1) % checkpoint_every == 0:

@@ -20,6 +20,7 @@ def train_vae(model: VAE,
     
     optimizer = optim.AdamW(model.parameters(), lr=lr)
     model.to(device)
+    model.log_model()
     train_losses = []
     val_losses = []
 
@@ -61,13 +62,14 @@ def train_vae(model: VAE,
             for [data] in val_loader:
                 data = data.to(device)
                 reconstructed, mu, log_var = model(data)                
-                val_loss += vae_loss(reconstructed, data, mu, log_var, beta).item()
+                loss = vae_loss(reconstructed, data, mu, log_var, beta)
+                val_loss += loss.item()
 
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
 
         # Print losses for this epoch
-        print(f"Epoch {epoch + 1},\t Train Loss: {np.mean(train_losses):.6f},\t Val Loss: {val_loss:.6f}")
+        print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
         train_losses = []
 
         if (epoch+1) % checkpoint_every == 0:
@@ -94,6 +96,7 @@ def train_ae(model: AE,
     
     optimizer = optim.AdamW(model.parameters(), lr=lr)
     model.to(device)
+    model.log_model()
     train_losses = []
     val_losses = []
     loss_fn = nn.MSELoss()
@@ -135,17 +138,18 @@ def train_ae(model: AE,
             for [data] in val_loader:
                 data = data.to(device)
                 out = model(data)
-                val_loss += loss_fn(data, out)
+                loss = loss_fn(data, out)
+                val_loss += loss.item()
 
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
 
         # Print losses for this epoch
-        print(f"Epoch {epoch + 1},\t Train Loss: {np.mean(train_losses):.6f},\t Val Loss: {val_loss:.6f}")
+        print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
         train_losses = []
 
         if (epoch+1) % checkpoint_every == 0:
-            train_info[f"epoch_{epoch+1}_loss_val: "] = float(val_loss.cpu().numpy())
+            train_info[f"epoch_{epoch+1}_loss_val: "] = val_loss
             train_info[f"epoch_{epoch+1}_loss_train: "] = train_loss
             with open(f'{model.path}/train_info.json', 'w', encoding='utf-8') as f:
                 json.dump(train_info, f)

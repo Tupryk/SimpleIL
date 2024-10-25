@@ -6,7 +6,7 @@ from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.animation as animation
 
 
-def plot_image_grid(images, grid_dims=[3, 3]):
+def plot_image_grid(images: np.ndarray, grid_dims: list[int]=[3, 3]):
     fig, axes = plt.subplots(grid_dims[1], grid_dims[0], figsize=(10, 10))
     for i in range(grid_dims[1]):
         for j in range(grid_dims[0]):
@@ -15,7 +15,8 @@ def plot_image_grid(images, grid_dims=[3, 3]):
     plt.tight_layout()
     plt.show()
 
-def plot_path(x: np.ndarray, y: np.ndarray, markings_x=[], markings_y=[]):
+
+def plot_path(x: np.ndarray, y: np.ndarray, markings_x: list[float]=[], markings_y: list[float]=[]):
     # Create a color gradient from blue to red based on the index
     cmap = LinearSegmentedColormap.from_list('blue_red', ['blue', 'red'])
     norm = plt.Normalize(0, len(x) - 1)  # Normalize based on index
@@ -57,7 +58,7 @@ def plot_path(x: np.ndarray, y: np.ndarray, markings_x=[], markings_y=[]):
     plt.show()
 
 
-def vis_denoising(paths):
+def vis_denoising(paths: np.ndarray):
     paths = paths.transpose(0, 2, 1)
     # Create a figure and a 3D axis
     fig = plt.figure()
@@ -93,4 +94,35 @@ def vis_denoising(paths):
     )
 
     # Show the animation
+    plt.show()
+
+
+def plot_waypoints_and_initial_image(pred_waypoints: np.ndarray,
+                                     target_waypoints: np.ndarray,
+                                     imgs: np.ndarray,
+                                     start_way: np.ndarray=np.array([-8.28538e-04, 2.77307e-01, 1.26312e+00]),
+                                     save_path: str=""):
+    count = len(imgs)
+    plot_len = (20/6) * count
+    fig, axes = plt.subplots(count, 2, figsize=(10, plot_len))
+
+    for i in range(count):
+
+        axes[i, 0].imshow(imgs[i])
+
+        axes[i, 1].scatter([start_way[0]], [start_way[1]], c="g")
+
+        axes[i, 1].scatter(pred_waypoints[i][1:3][:, 0], pred_waypoints[i][1:3][:, 1], c="b")
+        axes[i, 1].scatter(pred_waypoints[i][:, 0][0], pred_waypoints[i][:, 1][0], c="r")
+        axes[i, 1].plot([start_way[0], *pred_waypoints[i][:, 0]], [start_way[1], *pred_waypoints[i][:, 1]])
+
+        axes[i, 1].scatter(target_waypoints[i][:, 0], target_waypoints[i][:, 1], c="y")
+        axes[i, 1].plot([start_way[0], *target_waypoints[i][:, 0]], [start_way[1], *target_waypoints[i][:, 1]], c="y")
+
+        axes[i, 0].axis('off')
+        axes[i, 1].axis('equal')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path)
     plt.show()

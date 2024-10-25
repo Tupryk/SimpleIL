@@ -10,12 +10,12 @@ class MLP(nn.Module):
                  input_size: int,
                  output_size: int,
                  dropout_prob: float = 0.2,
-                 activation: str = 'relu',
+                 activation: str = 'silu',
                  hidden_layers: list[int] = [16, 16]):
         
         super(MLP, self).__init__()
 
-        # Initialize encoder layers
+        # Initialize linear layers
         layers = []
         last_dim = input_size
         for size in hidden_layers:
@@ -25,6 +25,8 @@ class MLP(nn.Module):
             # Add activation function
             if activation.lower() == 'relu':
                 layers.append(nn.ReLU())
+            elif activation.lower() == 'silu':
+                layers.append(nn.SiLU())
             else:
                 raise ValueError(f"Error: Activation function '{activation}' not implemented")
             
@@ -35,9 +37,7 @@ class MLP(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
-        self.generate_log_data_path()
-
-        model_params = {
+        self.model_params = {
             'input_size': input_size,
             'output_size': output_size,
             'hidden_layers': hidden_layers,
@@ -45,14 +45,18 @@ class MLP(nn.Module):
             'dropout_prob': dropout_prob
         }
 
-        with open(f'{self.path}/model_params.json', 'w', encoding='utf-8') as f:
-            json.dump(model_params, f)
+        self.path = "."
 
     def generate_log_data_path(self):
         current_time = datetime.now().strftime("%Y-%m-%d_%H:%M")
         self.path = f"./logs/models/mlp_{current_time}"
         if not os.path.exists(f"{self.path}/pth"):
             os.makedirs(f"{self.path}/pth")
+
+    def log_model(self):
+        self.generate_log_data_path()
+        with open(f'{self.path}/model_params.json', 'w', encoding='utf-8') as f:
+            json.dump(self.model_params, f)
     
     def forward(self, x):
         x = self.layers(x)

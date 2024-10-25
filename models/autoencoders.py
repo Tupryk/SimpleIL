@@ -14,27 +14,26 @@ class AE(nn.Module):
                  kernel_size: int = 3,
                  stride: int = 2,
                  padding: int = 1,
-                 activation: str = 'relu',
+                 activation: str = 'silu',
                  layers_encoder: list[tuple[int, int]] = [(3, 16), (16, 32), (32, 64), (64, 128)]):
         
         super(AE, self).__init__()
 
-        self.kernel_size = kernel_size
-        self.padding = padding
-        self.stride = stride
-        self.layers_encoder = layers_encoder
-
         # Initialize encoder layers
         layers = []
+        current_dim = input_dim
         for i, (in_channels, out_channels) in enumerate(layers_encoder):
             layers.append(
                 nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
             )
+            current_dim = (current_dim - kernel_size + 2 * padding) // stride + 1 
             
             if i != len(layers_encoder)-1:
                 # Add activation function
                 if activation.lower() == 'relu':
                     layers.append(nn.ReLU())
+                elif activation.lower() == 'silu':
+                    layers.append(nn.SiLU())
                 else:
                     raise ValueError(f"Error: Activation function '{activation}' not implemented")
                 
@@ -46,7 +45,7 @@ class AE(nn.Module):
         # Flatten to a vector
         a = layers_encoder[-1][1]
         b = layers_encoder[0][1]
-        self.flattened_size = a * (input_dim // b) * (input_dim // b)
+        self.flattened_size = out_channels * current_dim * current_dim
         self.latent_dim = latent_dim
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(self.flattened_size, self.latent_dim)
@@ -65,6 +64,8 @@ class AE(nn.Module):
                 # Add activation function
                 if activation.lower() == 'relu':
                     layers.append(nn.ReLU())
+                elif activation.lower() == 'silu':
+                    layers.append(nn.SiLU())
                 else:
                     raise ValueError(f"Error: Activation function '{activation}' not implemented")
                 
@@ -73,27 +74,29 @@ class AE(nn.Module):
 
         self.decoder = nn.Sequential(*layers)
 
-        self.generate_log_data_path()
-
-        model_params = {
+        self.model_params = {
             'image_size': input_dim,
             'latent_dimension': latent_dim,
-            'kernel_size': self.kernel_size,
-            'stride': self.stride,
-            'padding': self.padding,
-            'encoder_layers': self.layers_encoder,
+            'kernel_size': kernel_size,
+            'stride': stride,
+            'padding': padding,
+            'encoder_layers': layers_encoder,
             'activation': activation,
             'dropout_prob': dropout_prob
         }
 
-        with open(f'{self.path}/model_params.json', 'w', encoding='utf-8') as f:
-            json.dump(model_params, f)
+        self.path = "."
 
     def generate_log_data_path(self):
         current_time = datetime.now().strftime("%Y-%m-%d_%H:%M")
         self.path = f"./logs/models/autoencoder_{current_time}"
         if not os.path.exists(f"{self.path}/pth"):
             os.makedirs(f"{self.path}/pth")
+
+    def log_model(self):
+        self.generate_log_data_path()
+        with open(f'{self.path}/model_params.json', 'w', encoding='utf-8') as f:
+            json.dump(self.model_params, f)
     
     def encode(self, x):
         encoded = self.encoder(x)
