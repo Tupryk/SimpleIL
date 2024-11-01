@@ -65,4 +65,3 @@ class MLP(nn.Module):
     def save(self, epoch: int):
         file_name = f"{self.path}/pth/epoch_{epoch}.pth"
         torch.save(self.state_dict(), file_name)
-    

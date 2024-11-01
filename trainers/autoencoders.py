@@ -18,7 +18,7 @@ def train_vae(model: VAE,
               lr: float = 1e-3,
               beta: float=1.):
     
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     model.to(device)
     model.log_model()
     train_losses = []
@@ -31,7 +31,7 @@ def train_vae(model: VAE,
         "train_batch_size": train_loader.batch_size,
         "n_epochs": n_epochs,
         "learning_rate": lr,
-        "optimizer": "AdamW",
+        "optimizer": "Adam",
         "loss_fn": "MSELoss",
         "VAE_beta": beta
     }
@@ -70,11 +70,8 @@ def train_vae(model: VAE,
 
         # Print losses for this epoch
         print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
-        train_losses = []
 
         if (epoch+1) % checkpoint_every == 0:
-            train_info[f"epoch_{epoch+1}_loss_val: "] = val_loss
-            train_info[f"epoch_{epoch+1}_loss_train: "] = train_loss
             with open(f'{model.path}/train_info.json', 'w', encoding='utf-8') as f:
                 json.dump(train_info, f)
             
@@ -94,7 +91,7 @@ def train_ae(model: AE,
              checkpoint_every: int = 1000,
              lr: float = 1e-3):
     
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     model.to(device)
     model.log_model()
     train_losses = []
@@ -108,7 +105,7 @@ def train_ae(model: AE,
         "train_batch_size": train_loader.batch_size,
         "n_epochs": n_epochs,
         "learning_rate": lr,
-        "optimizer": "AdamW",
+        "optimizer": "Adam",
         "loss_fn": "MSELoss"
     }
 
@@ -146,11 +143,8 @@ def train_ae(model: AE,
 
         # Print losses for this epoch
         print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
-        train_losses = []
 
         if (epoch+1) % checkpoint_every == 0:
-            train_info[f"epoch_{epoch+1}_loss_val: "] = val_loss
-            train_info[f"epoch_{epoch+1}_loss_train: "] = train_loss
             with open(f'{model.path}/train_info.json', 'w', encoding='utf-8') as f:
                 json.dump(train_info, f)
             
