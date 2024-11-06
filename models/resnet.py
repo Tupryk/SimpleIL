@@ -1,4 +1,8 @@
+import os
+import json
 import torch
+import datetime
+import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -72,6 +76,32 @@ class ResNetVAE(nn.Module):
         super(ResNetVAE, self).__init__()
         self.encoder = Encoder(in_channels, latent_dim)
         self.decoder = Decoder(latent_dim, in_channels)
+        self.path = "."
+
+        self.model_params = {
+            'latent_dimension': latent_dim,
+        }
+
+    def generate_log_data_path(self):
+        current_time = datetime.now().strftime("%Y-%m-%d_%H:%M")
+        self.path = f"./logs/models/resnet_{current_time}"
+        if not os.path.exists(f"{self.path}/pth"):
+            os.makedirs(f"{self.path}/pth")
+
+    def log_model(self):
+        self.generate_log_data_path()
+        with open(f'{self.path}/model_params.json', 'w', encoding='utf-8') as f:
+            json.dump(self.model_params, f)
+
+    def save(self, epoch: int):
+        file_name = f"{self.path}/pth/epoch_{epoch}.pth"
+        torch.save(self.state_dict(), file_name)
+
+    def encode(self, x):
+        return self.encoder(x)
+
+    def decode(self, x):
+        return self.decoder(x)
     
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
@@ -83,3 +113,12 @@ class ResNetVAE(nn.Module):
         z = self.reparameterize(mu, logvar)
         reconstructed = self.decoder(z)
         return reconstructed, mu, logvar
+
+    def forward_clean(self, original_images):
+        # This should be done with the dataloader stuff maybe
+        pred_images = self.forward(original_images)
+        pred_images = pred_images.detach().cpu().numpy()
+        pred_images = np.maximum(pred_images, 0)
+        pred_images = np.minimum(pred_images, 1)
+        pred_images = np.transpose(pred_images, (0, 2, 3, 1))
+        return pred_images
