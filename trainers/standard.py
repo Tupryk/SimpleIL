@@ -81,6 +81,79 @@ def train(model: nn.Module,
     return model
 
 
+def train_fm_conditional(
+        model: nn.Module,
+        encoder: AE,
+        device: str,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+        n_epochs: int = 10,
+        lr: float = 1e-3
+    ):
+    
+    # optimizer = optim.Adam(
+    #     list(model.parameters()) + list(encoder.parameters()),
+    #     lr=lr
+    # )
+    optimizer = optim.Adam(
+        list(model.parameters()),
+        lr=lr
+    )
+    
+    model.to(device)
+    encoder.to(device)
+    train_losses = []
+    val_losses = []
+    loss_fn = nn.MSELoss()
+
+    for epoch in range(n_epochs):
+        
+        # Train step
+        encoder.train()
+        model.train()
+        train_loss = 0
+        for X, y in train_loader:
+            X, y = X.to(device), y.to(device)
+            optimizer.zero_grad()
+
+            X, _ = encoder.encode(X)  # Encode input
+
+            t = torch.rand(size=(y.shape[0], 1)).to(device)
+            noise = torch.randn(*y.shape, device=device)
+            model_in = y * t + noise * ( torch.ones(size=(y.shape[0], 1).to(device)) - t )
+            x = torch.concat([model_in, X], axis=-1)
+            x = torch.concat([x, t], axis=-1)
+            out = model(x)
+            loss = torch.mean((noise - out)**2)
+            train_loss += loss.item()
+
+            loss.backward()
+            optimizer.step()
+
+        train_loss /= len(train_loader)
+        train_losses.append(train_loss)
+
+        # Validation step
+        encoder.eval()
+        model.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for X, y in val_loader:
+                X, y = X.to(device), y.to(device)
+                X, _ = encoder.encode(X)
+                out = model(X)
+                loss = loss_fn(out, y)
+                val_loss += loss.item()
+
+        val_loss /= len(val_loader)
+        val_losses.append(val_loss)
+
+        # Print losses for this epoch
+        print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
+
+    return model, encoder
+
+
 def train_with_encoder(
         model: nn.Module,
         encoder: AE,
@@ -91,8 +164,12 @@ def train_with_encoder(
         lr: float = 1e-3
     ):
     
+    # optimizer = optim.Adam(
+    #     list(model.parameters()) + list(encoder.parameters()),
+    #     lr=lr
+    # )
     optimizer = optim.Adam(
-        list(model.parameters()) + list(encoder.parameters()),
+        list(model.parameters()),
         lr=lr
     )
     
@@ -142,4 +219,3 @@ def train_with_encoder(
         print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
 
     return model, encoder
-
