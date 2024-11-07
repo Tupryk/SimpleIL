@@ -86,25 +86,18 @@ def train_fm_conditional(
         encoder: AE,
         device: str,
         train_loader: DataLoader,
-        val_loader: DataLoader,
         n_epochs: int = 10,
         lr: float = 1e-3
     ):
     
-    # optimizer = optim.Adam(
-    #     list(model.parameters()) + list(encoder.parameters()),
-    #     lr=lr
-    # )
     optimizer = optim.Adam(
-        list(model.parameters()),
+        list(model.parameters()) + list(encoder.parameters()),
         lr=lr
     )
-    
+
     model.to(device)
     encoder.to(device)
     train_losses = []
-    val_losses = []
-    loss_fn = nn.MSELoss()
 
     for epoch in range(n_epochs):
         
@@ -117,10 +110,9 @@ def train_fm_conditional(
             optimizer.zero_grad()
 
             X, _ = encoder.encode(X)  # Encode input
-
             t = torch.rand(size=(y.shape[0], 1)).to(device)
             noise = torch.randn(*y.shape, device=device)
-            model_in = y * t + noise * ( torch.ones(size=(y.shape[0], 1).to(device)) - t )
+            model_in = y * t + noise * ( torch.ones(size=(y.shape[0], 1)).to(device) - t )
             x = torch.concat([model_in, X], axis=-1)
             x = torch.concat([x, t], axis=-1)
             out = model(x)
@@ -133,23 +125,8 @@ def train_fm_conditional(
         train_loss /= len(train_loader)
         train_losses.append(train_loss)
 
-        # Validation step
-        encoder.eval()
-        model.eval()
-        val_loss = 0
-        with torch.no_grad():
-            for X, y in val_loader:
-                X, y = X.to(device), y.to(device)
-                X, _ = encoder.encode(X)
-                out = model(X)
-                loss = loss_fn(out, y)
-                val_loss += loss.item()
-
-        val_loss /= len(val_loader)
-        val_losses.append(val_loss)
-
         # Print losses for this epoch
-        print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f},\t Val Loss: {val_loss:.6f}")
+        print(f"Epoch {epoch + 1},\t Train Loss: {train_loss:.6f}")
 
     return model, encoder
 
