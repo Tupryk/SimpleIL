@@ -3,6 +3,25 @@ import numpy as np
 import robotic as ry
 
 
+def waypoints_from_bridge_build(path: str):
+
+    joints = np.load(path)
+    C = ry.Config()
+    C.addFile(ry.raiPath("scenarios/pandaSingle.g"))
+    pos = []
+    quat = []
+    for j in joints:
+        C.setJointState(j[-1])
+        p = C.getFrame("l_gripper").getPosition()
+        q = C.getFrame("l_gripper").getQuaternion()
+        pos.append(p)
+        quat.append(q)
+
+    pos = np.array(pos)
+    quat = np.array(quat)
+
+    return pos, quat
+
 def joint_state_to_pose(C: ry.Config, q):
     C.setJointState(q)
     frame = C.getFrame("l_gripper")
